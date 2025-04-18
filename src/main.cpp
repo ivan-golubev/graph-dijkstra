@@ -37,7 +37,7 @@ public:
 template<int VertexCount>
 std::array<int, VertexCount> FindShortestPaths(Graph<VertexCount>& graph, int sourceVertex)
 {
-	--sourceVertex;//0 indexed
+	--sourceVertex; //0 indexed
 	assert(sourceVertex >= 0 && sourceVertex < VertexCount);
 	std::array<int, VertexCount> shortestPaths;
 	shortestPaths.fill(std::numeric_limits<int>::max()); // distance to all vertices is unknown
@@ -49,25 +49,19 @@ std::array<int, VertexCount> FindShortestPaths(Graph<VertexCount>& graph, int so
 		};
 	std::priority_queue<Path, std::vector<Path>, decltype(comparator)> minHeap;
 	minHeap.emplace(sourceVertex, 0); // start at the source vertex
-	std::array<bool, VertexCount> visitedVertices{};
 	while (!minHeap.empty())
 	{
 		auto [fromVertex, currentDistance] = minHeap.top(); minHeap.pop();
-		visitedVertices[fromVertex] = true;
-
-		for (const auto& edge : graph.AdjList[fromVertex])
+		for (const auto& [to, weight] : graph.AdjList[fromVertex])
 		{
-			if (visitedVertices[edge.to])
-				continue;
-
-			int newDistance = edge.weight + currentDistance;
-			if (newDistance < shortestPaths[edge.to])
+			int newDistance = weight + currentDistance;
+			if (newDistance < shortestPaths[to])
 			{
-				shortestPaths[edge.to] = newDistance;
+				shortestPaths[to] = newDistance;
 #ifndef NDEBUG
-				std::cout << std::format("Found shortest path from {} to {} with weight = {}\n", sourceVertex + 1, edge.to + 1, newDistance);
+				std::cout << std::format("Found shortest path from {} to {} with weight = {}\n", sourceVertex + 1, to + 1, newDistance);
 #endif
-				minHeap.emplace(edge.to, newDistance);
+				minHeap.emplace(to, newDistance);
 			}
 		}
 	}
