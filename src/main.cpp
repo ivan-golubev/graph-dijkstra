@@ -8,9 +8,14 @@
 
 struct Edge
 {
-	int from;
 	int to;
 	int weight;
+};
+
+struct Path
+{
+	int to;
+	int distance;
 };
 
 template<int VertexCount>
@@ -24,8 +29,8 @@ public:
 		--from; --to; // 0 indexed
 		assert(from >= 0 && from < VertexCount);
 		assert(to >= 0 && to < VertexCount);
-		AdjList[from].emplace_back(from, to, weight);
-		AdjList[to].emplace_back(to, from, weight);
+		AdjList[from].emplace_back(to, weight);
+		AdjList[to].emplace_back(from, weight);
 	}
 };
 
@@ -38,28 +43,33 @@ std::array<int, VertexCount> FindShortestPaths(Graph<VertexCount>& graph, int so
 	shortestPaths.fill(std::numeric_limits<int>::max()); // distance to all vertices is unknown
 	shortestPaths[sourceVertex] = 0; // path to the source vertex itself it zero
 	// Dijkstra's algorithm
-	auto comparator = [](const Edge& left, const Edge& right)
+	auto comparator = [](const Path& left, const Path& right)
 		{
-			return left.weight > right.weight;
+			return left.distance > right.distance;
 		};
-	std::priority_queue<Edge, std::vector<Edge>, decltype(comparator)> minHeap;
-	minHeap.emplace(sourceVertex, sourceVertex, 0); // start at the source vertex
+	std::priority_queue<Path, std::vector<Path>, decltype(comparator)> minHeap;
+	minHeap.emplace(sourceVertex, 0); // start at the source vertex
 	std::array<bool, VertexCount> visitedVertices{};
 	while (!minHeap.empty())
 	{
-		Edge edge = minHeap.top(); minHeap.pop();
-		if (visitedVertices[edge.to])
-			continue;
-		visitedVertices[edge.to] = true;
+		auto [fromVertex, currentDistance] = minHeap.top(); minHeap.pop();
+		visitedVertices[fromVertex] = true;
 
-		shortestPaths[edge.to] = std::min(shortestPaths[edge.to], shortestPaths[edge.from] + edge.weight);
+		for (const auto& edge : graph.AdjList[fromVertex])
+		{
+			if (visitedVertices[edge.to])
+				continue;
+
+			int newDistance = edge.weight + currentDistance;
+			if (newDistance < shortestPaths[edge.to])
+			{
+				shortestPaths[edge.to] = newDistance;
 #ifndef NDEBUG
-		if (edge.weight != 0)
-			std::cout << std::format("Edge from {} to {} with weight = {}\n", sourceVertex + 1, edge.to + 1, shortestPaths[edge.to]);
+				std::cout << std::format("Found shortest path from {} to {} with weight = {}\n", sourceVertex + 1, edge.to + 1, newDistance);
 #endif
-		// push the edges from this vertex
-		for (const auto& edge : graph.AdjList[edge.to])
-			minHeap.push(edge);
+				minHeap.emplace(edge.to, newDistance);
+			}
+		}
 	}
 	return shortestPaths;
 }
